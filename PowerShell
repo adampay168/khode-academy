@@ -1,0 +1,43 @@
+Get-TimeZone -ListAvailable | ft
+Set-TimeZone -Name ""
+
+Hostname
+Rename-Computer -NewName WIN-PS -PassThru
+Restart-Computer
+
+Get-NetIPConfiguration
+New-NetIPAddress -InterfaceIndex 2 -IPAddress 172.16.88.66 -PrefixLength 16 -DefaultGateway 172.16.88.99
+Set-DnsClientServerAddress -InterfaceIndex 2 -ServerAddress 172.16.88.66
+
+Ipconfig
+Disable-NetAdapterBing -InterfaceAlias Ethernet0 -ComponetID ms_tcpip6
+
+Get-NetFirewallProfile | select name, Enabled
+Set-NetFirewallProfile -Profile Domain, Private, Public -Enabled Fales
+
+Get-WindowsFeature -Name *DNS*, *AD-*
+Install-WindowsFeature DNS -IncludeManagementTools
+Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
+
+Install-ADDSForest -CreatDnsDelegation:$fales -DatabasePath C:\Windows\NTDS -DomainName GROUPTHREE.LOCAL -InstallDns:$true -LogPath C:\Windows\LOGS -SysvolPath C:\Windows\SYSVOL -Force:$true
+	-> Enter Password of Server:...
+
+Get-DnsServerZone
+Add-DnsServerPrimaryZone -NetworkId 172.16.88.0/24 -ReplicationScope Domain
+Add-DnsServerResourceRecord -Name "66" -Ptr -ZoneName "88.16.172.in-addr.arpa" -AllowUpdateAny -PtrDomainName "WIN-PS.GROUPTHREE.LOCAL"
+
+Add-DnsServerResourceRecordA -ZoneName "GROUPTHREE.LOCAL" -Name "PS-01" -AllowUpdateAny -IPAddress "172.16.88.100" -TimeToLive -AgeRecord
+Add-DnsServerResourceRecord -Name "100" -Ptr -ZoneName "88.16.172.in-addr.arpa" -AllowUpdateAny -PtrDomainName "PS-01.GROUPTHREE.LOCAL"
+
+Add-DnsServerResourceRecordA -ZoneName "GROUPTHREE.LOCAL" -Name "PS-02" -AllowUpdateAny -IPAddress "172.16.88.200" -TimeToLive -AgeRecord
+Add-DnsServerResourceRecord -Name "200" -Ptr -ZoneName "88.16.172.in-addr.arpa" -AllowUpdateAny -PtrDomainName "PS-02.GROUPTHREE.LOCAL"
+
+Join client PC
+
+New-ADOrganizationUnit -Name "ProjectG3" -Path "DC=GROUPTHREE,DC=LOCAL"
+New-ADGroup -Name G3 -SamAccountName Group3 -GroupCategory Security -GroupScope Global -DisableName "GROUP3" -Path "OU=ProjectG3,DC=GROUPTHREE,DC=LOCAL" -Description "Members of Project Group3 Administrator"
+New-ADUser -Name sphen -DisableName "Phen SOK" -GivenName Phen -Surname SOK -UserPrincipalName Phen.Sok@GROUPTHREE.LOCAL -Path "OU=ProjectG3,DC=GROUPTHREE,DC=LOCAL" -EmailAddress phen.sok@GROUPTHREE.LOCAL -Office "Project IT" -AccountPassword (ConvertTo-SecureString "Pa55w0rd" -AsPlainText -Force) -ChangePasswordAtLogon 0 -Enabled:$true
+
+New-Item "C\myshare\sphen" -ItemType Directory
+
+New-SmbShare -Name "sphen" -Path "C:\myshare\sphen" -FullAccess "sphen"
